@@ -15,9 +15,9 @@ class LinearRegression(Algorithm):
         XX_inv = numpy.linalg.inv(numpy.dot(X_t, X))
         _coef = numpy.dot(numpy.dot(XX_inv, X_t), y)
         if self.params.fit_intercept:
-            coef = OrderedDict(zip(['intercept'] + self.params.featuresCol, _coef))
+            coef = OrderedDict(zip(['intercept'] + self.params._featuresCol, _coef))
         else:
-            coef = OrderedDict(zip(self.params.featuresCol, _coef))
+            coef = OrderedDict(zip(self.params._featuresCol, _coef))
         model = LinearRegressionModel(coef=coef, _coef=_coef, params=self.params.freeze())
         return model
 

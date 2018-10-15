@@ -5,42 +5,32 @@ import pandas
 import copy
 
 
-class Params(object):
+class FrozenParams(object):
 
-    params = set()
+    param_set = set()
 
     def __init__(self, **kwargs):
-        self.set_params(**kwargs)
+        self._set_params(**kwargs)
 
     def get_param(self, param):
         return getattr(self, param)
 
     def get_params(self):
-        return {param: getattr(self, param) for param in self.params}
+        return {param: getattr(self, param) for param in self.param_set}
 
-    def set_params(self, **kwargs):
-        self.params.update(kwargs)
+    def _set_params(self, **kwargs):
+        self.param_set.update(kwargs)
         for k, v in kwargs.items():
             setattr(self, k, v)
+
+
+class Params(FrozenParams):
+
+    def set_params(self, **kwargs):
+        self._set_params(**kwargs)
 
     def freeze(self):
         return FrozenParams(**copy.deepcopy(self.get_params()))
-
-
-class FrozenParams(object):
-
-    params = set()
-
-    def __init__(self, **kwargs):
-        self._set_params(**kwargs)
-
-    def get_params(self):
-        return {param: getattr(self, param) for param in self.params}
-
-    def _set_params(self, **kwargs):
-        self.params.update(kwargs)
-        for k, v in kwargs.items():
-            setattr(self, k, v)
 
 
 class Algorithm(object):
@@ -81,7 +71,7 @@ class Algorithm(object):
         else:
             featuresCol = [col for col in dataset.columns if col != labelCol]
         X = dataset.loc[:, featuresCol].values
-        self.params.set_params(featuresCol=featuresCol, labelCol=labelCol)
+        self.params.set_params(_featuresCol=featuresCol, _labelCol=labelCol)
         return self._fit(X, y)
 
 
@@ -105,13 +95,15 @@ class Model(object):
         """
         raise NotImplementedError()
 
-    def predict(self, dataset):
+    def predict(self, dataset, inplace=True):
         """
         Transforms the input dataset with optional parameters.
         :param dataset: input dataset, which is an instance of :py:class:`pyspark.sql.DataFrame`
         :param params: an optional param map that overrides embedded params.
         :returns: transformed dataset
         """
-        X = dataset.loc[:, self.params.featuresCol].values
+        X = dataset.loc[:, self.params._featuresCol].values
+        if inplace is False:
+            dataset = dataset.copy()
         dataset[self.params.prediction] = self._predict(X)
         return dataset
